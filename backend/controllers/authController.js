@@ -1,10 +1,12 @@
 import mongoose from "mongoose"
 import bcrypt from "bcryptjs"
 import User from "../model/User.js";
+import { generateTokens, storeRefreshTokens,setCookies } from "../lib/generateTokens.js";
 
 export const signup = async(req,res)=>{
 //destructure data from body
 const { name, email, password } = req.body;
+
 
 try {
 
@@ -14,10 +16,10 @@ try {
     }
     
 //check if user exist 
-const existingUser = await User.findOne({ name });
-		if (existingUser) {
-			return res.status(400).json({ message: "Name is already taken" });
-		}
+// const existingUser = await User.findOne({ name });
+// 		if (existingUser) {
+// 			return res.status(400).json({ message: "Name is already taken" });
+// 		}
 
         //Check if email follows correct email pattern
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,6 +50,15 @@ const existingUser = await User.findOne({ name });
 		});
         //Save use to the db
         await newUser.save();
+
+        //Generate access token and refresh
+        const {accessToken,refreshToken} =generateTokens(newUser._id)
+
+        //call function to store refresh token in the redis db
+        await storeRefreshTokens(newUser._id,refreshToken)
+
+        //Set cookies
+        setCookies(res,accessToken,refreshToken);
         //give resopnse to the request
       if(newUser){
           res.status(201).json({
