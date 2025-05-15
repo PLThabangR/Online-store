@@ -1,10 +1,14 @@
 import express from "express"
-import { signUpController } from "../controllers/authController.js"
+import { login,signup,logout } from "../controllers/authController.js"
 
 const router = express.Router()
 
 
-router.get("/signup",(signUpController))
+router.get("/signup",signup)
+
+router.get("/login",login)
+
+router.get("/logout",logout)
 
 
 
