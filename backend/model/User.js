@@ -1,9 +1,9 @@
 import { mongoose, Types } from "mongoose";
 
 
-//create schema
-
+//create User schema
 const userSchema=new mongoose.Schema({
+
 name:{
     type:String,
     required:[true,"Name is required"]
@@ -47,5 +47,7 @@ role:{
 
 //Creater a  model
 const User = mongoose.model("User",userSchema)
+
+
 //Export for external usage
 export default User;

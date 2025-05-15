@@ -4,7 +4,8 @@ import authRoutes from "./routes/auth.js"
 import { connectDb } from "./lib/db.js";
 
 const app= express();
-
+//allow app to parse json in body
+app.use(express.json())
 //Allow app to read values from .env
 dotenv.config()
 //assigning port to env
