@@ -1,6 +1,8 @@
 import mongoose from "mongoose"
 import bcrypt from "bcryptjs"
 import User from "../model/User.js";
+import jwt from "jsonwebtoken"
+import { redis } from  "../lib/redis.js"
 import { generateTokens, storeRefreshTokens,setCookies } from "../lib/generateTokens.js";
 
 export const signup = async(req,res)=>{
@@ -61,13 +63,13 @@ try {
         setCookies(res,accessToken,refreshToken);
         //give resopnse to the request
       if(newUser){
-          res.status(201).json({
+          res.status(201).json({user:{
             _id: newUser._id,
             name:newUser.name,
             email: newUser.email,
-            password:newUser.password,
-            message:"User created succesfully"
-        })
+            //password:newUser.password, do not return the password to the user
+           
+        }, message:"User created succesfully"})
       }else{
           res.status(400).json({ message: "Invalid user data" });
       }
@@ -84,7 +86,23 @@ res.send("Login")
 }
 
 export const logout =async (req,res)=>{
-res.send("Logout")
+//We must clear the clokies when user clicks logout
+try {
+    //Grab the cookies from the url using cookie parser
+    const refreshToken = req.cookies.refreshToken;
+    //if cookies is found then decode and delete from redis
+    if(refreshToken){
+        //decode token and clear cookies
+        const decoded = jwt .verify(refreshToken,process.env.REFRESH_TOKEN_SECRECT);
+        await redis.del(`refresh_token:${decoded.id}`)//remove refresh token from redis database
+        res.clearCookie("refreshToken")//clear the cookie refresh token
+        res.clearCookie("accessToken")// clear the cookie access token
+        res.status(200).json({message:"Logged out successfully"})
+    }
+    
+} catch (error) {
+     res.status(200).json({message:"Internal server error" ,error:error.message})
+}
     
 //JD5UFXXNFOcoxf8F
 }
