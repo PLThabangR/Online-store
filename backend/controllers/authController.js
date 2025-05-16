@@ -53,7 +53,7 @@ try {
         //Save use to the db
         await newUser.save();
 
-        //Generate access token and refresh
+        //Generate access token and refresh token
         const {accessToken,refreshToken} =generateTokens(newUser._id)
 
         //call function to store refresh token in the redis db
@@ -63,24 +63,69 @@ try {
         setCookies(res,accessToken,refreshToken);
         //give resopnse to the request
       if(newUser){
-          res.status(201).json({user:{
+          res.status(201).json({
             _id: newUser._id,
             name:newUser.name,
             email: newUser.email,
+            role:newUser.role,
+            message:"User created succesfully"
             //password:newUser.password, do not return the password to the user
-           
-        }, message:"User created succesfully"})
+           })
       }else{
           res.status(400).json({ message: "Invalid user data" });
       }
 
 } catch (error) {
-    res.status(400).json({ message: "Internal server error" });
+   console.log("Error in signup controller",error.message)
+    res.status(500).json({ message: error.message || "Internal server error" });
 }
 }
 
 export const login = async(req,res)=>{
-res.send("Login")
+
+    const {email , password} = req.body;
+ try {  
+
+     //Check if email follows correct email pattern
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(email)) {
+			return res.status(400).json({ message: "Invalid email format" });
+		}
+    //find user by email and check if user exists
+        const user = await User.findOne({ email });
+        //Comparer password with hashed password in the DB
+        //We use this syntax password, user?.password || "" To avoid runtime errors if user is null
+        const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
+
+        if (!user || !isPasswordCorrect) {
+			return res.status(400).json({ message: "Invalid email or password" });
+		}
+
+         //Generate access token and refresh token
+        const {accessToken,refreshToken} =generateTokens(user._id)
+
+        //call function to store refresh token in the redis db
+       // await storeRefreshTokens(newUser._id,refreshToken)
+
+        //Set cookies
+        setCookies(res,accessToken,refreshToken);
+        //give resopnse to the request
+        res.status(200).json({
+            _id: user._id,
+            name:user.name,
+            email: user.email,
+            role:user.role,
+             message:"User logged in succesfully"
+            //password:user.password, do not return the password to the user
+           
+        ,})
+
+    
+ } catch (error) {
+    console.log("Error in login controller",error.message)
+    res.status(500).json({ message: error.message || "Internal server error" });
+
+ }
     
 
 }
@@ -98,10 +143,13 @@ try {
         res.clearCookie("refreshToken")//clear the cookie refresh token
         res.clearCookie("accessToken")// clear the cookie access token
         res.status(200).json({message:"Logged out successfully"})
+    }else{
+        return res.status(400).json({ message: "No refresh token found" });
     }
     
 } catch (error) {
-     res.status(200).json({message:"Internal server error" ,error:error.message})
+      console.log("Error in logout controller",error.message)
+    res.status(500).json({ message: error.message || "Internal server error" });
 }
     
 //JD5UFXXNFOcoxf8F
