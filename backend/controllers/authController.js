@@ -3,13 +3,11 @@ import bcrypt from "bcryptjs"
 import User from "../model/User.js";
 import jwt from "jsonwebtoken"
 import { redis } from  "../lib/redis.js"
-import { generateTokens, storeRefreshTokens,setCookies } from "../lib/generateTokens.js";
+import { generateTokens, storeRefreshTokens,setCookies, generateAccessToken ,setAccessToken} from "../lib/generateTokens.js";
 
 export const signup = async(req,res)=>{
 //destructure data from body
 const { name, email, password } = req.body;
-
-
 try {
 
     //check if user has filled all the required values
@@ -105,7 +103,7 @@ export const login = async(req,res)=>{
         const {accessToken,refreshToken} =generateTokens(user._id)
 
         //call function to store refresh token in the redis db
-       // await storeRefreshTokens(newUser._id,refreshToken)
+        await storeRefreshTokens(user._id,refreshToken)
 
         //Set cookies
         setCookies(res,accessToken,refreshToken);
@@ -135,11 +133,13 @@ export const logout =async (req,res)=>{
 try {
     //Grab the cookies from the url using cookie parser
     const refreshToken = req.cookies.refreshToken;
+
+    console.log(req.cookies)
     //if cookies is found then decode and delete from redis
     if(refreshToken){
-        //decode token and clear cookies
+        //decode token so we can get user ID ,expireIn and clear cookies
         const decoded = jwt .verify(refreshToken,process.env.REFRESH_TOKEN_SECRECT);
-        await redis.del(`refresh_token:${decoded.id}`)//remove refresh token from redis database
+        await redis.del(`refresh_token:${decoded.userID}`)//remove refresh token from redis database
         res.clearCookie("refreshToken")//clear the cookie refresh token
         res.clearCookie("accessToken")// clear the cookie access token
         res.status(200).json({message:"Logged out successfully"})
@@ -149,8 +149,50 @@ try {
     
 } catch (error) {
       console.log("Error in logout controller",error.message)
-    res.status(500).json({ message: error.message || "Internal server error" });
+    res.status(500).json({ message:"Internal server error" });
 }
     
 //JD5UFXXNFOcoxf8F
 }
+
+//This will recreate or refresh the access token token 
+export const refresh_token =async(req,res)=>{
+
+      
+   
+try {
+   
+ //Grab the cookies from the url using cookie parser
+   const refreshToken = req.cookies.refreshToken;
+    
+    if(!refreshToken){
+       return res.status(401).json({message:"No refresh token found"})
+    }
+    //decode the refresh token
+      const decoded = jwt.verify(refreshToken,process.env.REFRESH_TOKEN_SECRECT);
+      //Get refresh token from redis using the refresh_token key
+      const storedToken = await redis.get(`refresh_token:${decoded.userID}`)//get refresh token from redis database
+      console.log("Stored refresh token",storedToken)
+//Compare the refresh token with the one in the redis database
+      if(storedToken !== refreshToken){
+       return  res.status(403).json({message:"Unauthorized invalid refresh token"})
+      }
+        //Refresh the access token
+        const {accessToken} = generateAccessToken(decoded.userID);
+        
+        //call function to store set token
+        setAccessToken(res,accessToken)
+        //json response
+      return  res.status(200).json({message:"Access token refreshed successfully"})
+} catch (error) {
+    console.log("Error in refresh controller",error.message)
+   return   res.status(500).json({ message: error.message || "Internal Server Error" });
+}
+}
+
+//eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOiI2ODI3YmY4MzM2NTc5YjJlNDI4YzZjM2IiLCJpYXQiOjE3NDc0MzUzOTUsImV4cCI6MTc0ODA0MDE5NX0.5WkALqhLpP5t-_3pChcPSp2gA35kWHgv88OrghpQ8AY
+
+//eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOiI2ODI3YmY4MzM2NTc5YjJlNDI4YzZjM2IiLCJpYXQiOjE3NDc0MzU5OTQsImV4cCI6MTc0ODA0MDc5NH0.h50qP-Hxw2ZbD-FjJ1A027SqY0zpWHB2r0IHz0CBBA0
+
+
+//eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOiI2ODI3NDliNGNlMTNmZGMxODk0MjdmMTEiLCJpYXQiOjE3NDc0MzYyMzcsImV4cCI6MTc0ODA0MTAzN30.jzOyNIUXw1XlchwmRzbCD3waZz3U7cRawj7-td2aNO4

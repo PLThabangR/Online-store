@@ -29,7 +29,7 @@ export const storeRefreshTokens= async (userID,refreshToken) => {
 //set cookies both access token and refresh token
 export const setCookies=(res,accessToken,refreshToken)=>{
     //set access token
-    res.cookie("accessTken", accessToken, {
+    res.cookie("accessToken", accessToken, {
 	//	maxAge: 15 * 24 * 60 * 60 * 1000, //15 days in seconds
     // timeout in 15 minutes
          maxAge: 15 * 60 * 1000, //15 minutes in seconds
@@ -46,3 +46,25 @@ export const setCookies=(res,accessToken,refreshToken)=>{
 		secure: process.env.NODE_ENV !== "development",
 	});
 }
+//******************************************************************** */
+//Generate access Token
+export const generateAccessToken=(userID)=>{
+    //user id as a payload
+    const accessToken= jwt.sign({userID},process.env.Access_TOKEN_SECRECT,{
+        //This token will expire in 15 minutes
+        expiresIn:"15m"
+    })
+    return accessToken
+}
+
+//refresh access token function to make it reusable
+export const setAccessToken=(res,accessToken)=>{
+    //set access token
+    res.cookie("accessToken", accessToken, {
+	//	maxAge: 15 * 24 * 60 * 60 * 1000, //15 days in seconds
+    // timeout in 15 minutes
+         maxAge: 15 * 60 * 1000, //15 minutes in seconds
+		httpOnly: true, // prevent XSS attacks cross-site scripting attacks cannot acced by javascript
+		sameSite: "strict", // prevents CSRF attacks cross-site request forgery attacks/ cross site scripting attack
+		secure: process.env.NODE_ENV !== "development"
+	});}
