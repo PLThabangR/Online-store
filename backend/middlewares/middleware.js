@@ -17,7 +17,7 @@ export const protectRoute= async(req,res,next)=>{
        if(!decoded){
            return res.status(401).json({message:"No user found associated with the access token"})
        }
-       console.log(decoded.userID)
+      
         //find the user by ID  and exclude the password
         const user = await User.findById(decoded.userID).select("-password");
         //Handle error if user does not exist in mongodb
@@ -25,7 +25,6 @@ export const protectRoute= async(req,res,next)=>{
             return res.status(401).json({message:"Unauthorized user - user not found"})
         }
 
-        console.log("Show user informatiopn ",user)
         //put this user to the request object
         req.user=user;
         //call the next middleware
