@@ -128,3 +128,25 @@ export const deleteProduct =async(req,res)=>{
         return res.status(500).json({message:"Internal server error"});
     }
 }
+
+
+export const getRecommendedProduct =async(req,res)=>{
+    //We will be using aggregation pipeline to get the recommended products
+    //this functions are similiar like the one's in mysql group by , order by and limit
+    //Aggregation pipeline is used to perform complex queries on the data
+    //Aggregate function consist of  $match, $project, $sort, $limit ,$sample
+    try {
+        //Get the category of the product
+       const products = await Product.aggregate([
+        //We will get 3 random products
+        {$sample:{size:3}},
+        // $project is used to include, exclude, rename, or compute fields in your output documents
+        // We  will project the name,description,price,category,image
+        {$project:{name:1,description:1,price:1,category:1,image:1}}
+       ])
+        //json response
+       return res.status(200).json({products})
+    }catch(error){
+        return res.status(500).json({message:"Internal server error"})
+    }
+}
