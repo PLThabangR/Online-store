@@ -190,9 +190,16 @@ try {
 }
 }
 
-//eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOiI2ODI3YmY4MzM2NTc5YjJlNDI4YzZjM2IiLCJpYXQiOjE3NDc0MzUzOTUsImV4cCI6MTc0ODA0MDE5NX0.5WkALqhLpP5t-_3pChcPSp2gA35kWHgv88OrghpQ8AY
+export const getProfile =async(req,res)=>{
 
-//eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOiI2ODI3YmY4MzM2NTc5YjJlNDI4YzZjM2IiLCJpYXQiOjE3NDc0MzU5OTQsImV4cCI6MTc0ODA0MDc5NH0.h50qP-Hxw2ZbD-FjJ1A027SqY0zpWHB2r0IHz0CBBA0
-
-
-//eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOiI2ODI3NDliNGNlMTNmZGMxODk0MjdmMTEiLCJpYXQiOjE3NDc0MzYyMzcsImV4cCI6MTc0ODA0MTAzN30.jzOyNIUXw1XlchwmRzbCD3waZz3U7cRawj7-td2aNO4
+    try {
+        //return everything except the password
+        const user = await User.findById(req.user._id).select("-password");
+        //json response
+		res.status(200).json(user);
+    } catch (error) {
+        //Error message
+        console.log("Error in getMe controller", error.message);
+		res.status(500).json({ error: "Internal Server Error" });
+    }
+}
