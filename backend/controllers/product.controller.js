@@ -150,3 +150,56 @@ export const getRecommendedProduct =async(req,res)=>{
         return res.status(500).json({message:"Internal server error"})
     }
 }
+export const getProductByCatergory =async(req,res)=>{
+    //Get the category of the product
+ const category = req.params;
+try {
+    //find all products by category
+    const products = await Product.find({category:category});
+    //json response
+    return res.status(200).json({products})
+} catch (error) {
+    //error message
+    return res.status(500).json({message:"Internal server error"})
+}
+
+}
+
+export const ToggleFeaturedProduct=async(req,res)=>{
+ //When we toggle the cache we should be able to add the feature product to the redis database or delete it
+try {
+     
+    const product = await Product.findById(req.params.id);
+    //If the product is not found
+    if(!product){
+        return res.status(404).json({message:"Product not found"})
+    }
+    //Toggle the isFeatured field
+    product.isFeatured = !product.isFeatured;
+    //Save the product to the database
+   const updatedProduct = await product.save();
+
+    //cal function to update function
+    await updateFeaturedProductCache();
+    //json response
+    return res.status(200).json({updatedProduct,message:"Product updated successfully"})
+
+} catch (error) {
+    console.log("Error in toggleFeaturedProduct controller",error.message)
+    return res.status(500).json({message:"Internal server error"})
+}
+}
+
+//Update the feature product cache
+const updateFeaturedProductCache =async()=>{
+    try {   
+        //Find the feature product where isFeatured is true
+        const featureProducts = await Product.find({isFeatured:true}).lean();
+        //update the featured product in the redis database
+        await redis.set("feature_product",JSON.stringify(featureProducts));
+        awa
+    } catch (error) {
+        console.log("Error in updateFeaturedProductCache function",error.message)
+        return res.status(500).json({message:"Internal server error"})
+    }
+}
